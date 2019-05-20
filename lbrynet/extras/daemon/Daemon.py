@@ -7,6 +7,7 @@ import inspect
 import typing
 import base58
 import random
+import collections
 from urllib.parse import urlencode, quote
 from typing import Callable, Optional, List
 from binascii import hexlify, unhexlify
@@ -485,7 +486,23 @@ class Daemon(metaclass=JSONRPCServerType):
         )
 
     async def handle_stream_get_request(self, request: web.Request):
+        headers = json.dumps(collections.OrderedDict((k.decode(), v.decode()) for k, v in request.raw_headers))
+
+        try:
+            log.info("handling /get request:\n%s", headers)
+            return await self._handle_stream_get_request(request)
+        except web.HTTPException as err:
+            log.warning("http code during /get request: %s", err)
+            raise err
+        except Exception:
+            log.exception("error handling /get request")
+            raise
+        finally:
+            log.info("finished handling /stream range request:\n%s", headers)
+
+    async def _handle_stream_get_request(self, request: web.Request):
         if not self.conf.streaming_get:
+            log.warning("streaming_get is disabled, rejecting request")
             raise web.HTTPForbidden()
         name_and_claim_id = request.path.split("/get/")[1]
         if "/" not in name_and_claim_id:
@@ -501,6 +518,20 @@ class Daemon(metaclass=JSONRPCServerType):
         raise web.HTTPFound(f"/stream/{stream.sd_hash}")
 
     async def handle_stream_range_request(self, request: web.Request):
+        headers = json.dumps(collections.OrderedDict((k.decode(), v.decode()) for k, v in request.raw_headers))
+        try:
+            log.info("handling /stream range request:\n%s", headers)
+            return await self._handle_stream_range_request(request)
+        except web.HTTPException as err:
+            log.warning("http code during /stream range request: %s", err)
+            raise err
+        except Exception:
+            log.exception("error handling /stream range request")
+            raise
+        finally:
+            log.info("finished handling /stream range request:\n%s", headers)
+
+    async def _handle_stream_range_request(self, request: web.Request):
         sd_hash = request.path.split("/stream/")[1]
         if not self.stream_manager.started.is_set():
             await self.stream_manager.started.wait()

@@ -304,6 +304,8 @@ class ManagedStream:
             raise IndexError(start_blob_num)
         for i, blob_info in enumerate(self.descriptor.blobs[start_blob_num:-1]):
             assert i + start_blob_num == blob_info.blob_num
+            log.info("downloading/reading blob (%i/%i)", blob_info.blob_num + 1,
+                     len(self.descriptor.blobs) - 1)
             decrypted = await self.downloader.read_blob(blob_info, connection_id)
             yield (blob_info, decrypted)
 
@@ -324,8 +326,12 @@ class ManagedStream:
             async for blob_info, decrypted in self._aiter_read_stream(skip_blobs, connection_id=2):
                 if (blob_info.blob_num == len(self.descriptor.blobs) - 2) or (len(decrypted) + wrote >= size):
                     decrypted += (b'\x00' * (size - len(decrypted) - wrote - (skip_blobs * 2097151)))
+                    log.info("sending browser final blob (%i/%i)", blob_info.blob_num + 1,
+                             len(self.descriptor.blobs) - 1)
                     await response.write_eof(decrypted)
                 else:
+                    log.info("sending browser blob (%i/%i)", blob_info.blob_num + 1,
+                             len(self.descriptor.blobs) - 1)
                     await response.write(decrypted)
                 wrote += len(decrypted)
                 log.info("sent browser %sblob %i/%i", "(final) " if response._eof_sent else "",
