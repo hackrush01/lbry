@@ -525,6 +525,8 @@ class Daemon(metaclass=JSONRPCServerType):
         except web.HTTPException as err:
             log.warning("http code during /stream range request: %s", err)
             raise err
+        except asyncio.CancelledError:
+            log.info("/stream range request cancelled")
         except Exception:
             log.exception("error handling /stream range request")
             raise
