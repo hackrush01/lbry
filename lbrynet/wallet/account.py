@@ -37,14 +37,10 @@ class Account(BaseAccount):
         super().apply(d)
         self.channel_keys.update(d.get('certificates', {}))
 
-    def add_channel_private_key(self, channel_name, private_key):
+    def add_channel_private_key(self, private_key):
         public_key_bytes = private_key.get_verifying_key().to_der()
         channel_pubkey_hash = self.ledger.public_key_to_address(public_key_bytes)
-
-        if channel_pubkey_hash not in self.channel_keys:
-            self.channel_keys[channel_pubkey_hash] = private_key.to_pem().decode()
-        else:
-            log.info("Public-Private key mapping for the channel %s already exists. Skipping...", channel_name)
+        self.channel_keys[channel_pubkey_hash] = private_key.to_pem().decode()
 
     def get_channel_private_key(self, channel_pubkey_hash):
         private_key_pem = self.channel_keys.get(channel_pubkey_hash)
