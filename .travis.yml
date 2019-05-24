@@ -79,9 +79,14 @@ jobs:
       name: "Linux"
       env: OS=linux
       install:
+        - echo `python3 --version`
+        - echo `which python3`
+        - echo `pip3 --version`
         - pip3 install pyinstaller
         - pip3 install git+https://github.com/lbryio/torba.git
+        - echo "run set build "
         - python3 scripts/set_build.py
+        - echo "ran set build"
         - pip3 install -e .
       script:
         - pyinstaller -F -n lbrynet lbrynet/extras/cli.py
@@ -112,7 +117,8 @@ jobs:
       osx_image: xcode8.3
       language: generic
       env: OS=mac
-      cache: false
+      before_chache:
+        - brew cleanup
       before_install:
         - brew upgrade python || true
         - brew upgrade python || true
@@ -138,3 +144,4 @@ cache:
     - $HOME/.cache/pip
     - $HOME/Library/Caches/pip
     - $TRAVIS_BUILD_DIR/.tox
+    - $HOME/Library/Caches/Homebrew
